@@ -92,7 +92,7 @@ textarea{min-height:76px;resize:vertical}
 .titles{display:grid;gap:6px}
 .titles .chip{text-align:left}
 .mm{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
-.mm svg{display:block;min-width:720px;width:100%;height:auto}
+.mm svg{display:block;min-width:740px;width:100%;height:auto}
 .slides{display:grid;gap:10px}
 .sl{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
 .sl .num{width:30px;height:30px;border-radius:8px;background:var(--cat-soft);color:var(--cat);display:grid;place-items:center;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
@@ -134,7 +134,25 @@ textarea{min-height:76px;resize:vertical}
 .fb{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .fb > div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
 .fb ul{margin:6px 0 0;padding-left:1.1em;font-size:15px}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,16,15,.55);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.dialog{background:var(--paper);color:var(--ink);border-radius:16px;border-top:4px solid var(--cat);padding:22px;width:min(560px,100%);display:grid;gap:10px;max-height:100%;overflow-y:auto}
 .navrow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:14px}
+
+.exlink{justify-self:start;font-size:15px;font-weight:500;text-decoration:none;border:1px solid var(--cat);border-radius:999px;padding:4px 14px}
+.exlink:hover{background:var(--cat-soft)}
+.linkbtn{font:inherit;font-size:14px;border:none;background:none;color:var(--cat);text-decoration:underline;cursor:pointer;padding:0}
+.fld{font-size:14px;color:var(--muted);margin-top:4px}
+.types,.levels{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.type,.level{font:inherit;color:var(--ink);text-align:left;cursor:pointer;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 14px;display:grid;gap:2px;min-width:0}
+.type:hover,.level:hover{border-color:var(--cat)}
+.type.on,.level.on{border:2px solid var(--cat);background:var(--cat-soft);padding:11px 13px}
+.type b,.level b{font-size:16px}
+.type span,.level span{font-size:14px;color:var(--muted)}
+.type small{font-size:13px;color:var(--cat)}
+.dimhead{font-family:var(--f-display);font-size:18px;color:var(--cat);border-bottom:2px solid var(--cat-soft);padding-bottom:2px;margin-top:6px}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,20,20,.45);display:grid;place-items:center;padding:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.dialog{background:var(--paper);color:var(--ink);border-radius:16px;border-top:4px solid var(--cat);padding:22px;max-width:520px;width:100%;max-height:90vh;overflow:auto;display:grid;gap:8px}
+.dialog h2{font-size:22px}
 footer{color:var(--muted);font-size:13px;padding-block:0 40px}
 @media (max-width:420px){.drawers{grid-template-columns:1fr}}
 </style>
@@ -237,6 +255,10 @@ function buildDeck(P, d, tplId, blank){
 <script>
 (function(){
   const PLATFORM = "https://schoolsys.wlsh.tyc.edu.tw/WLSHTYC/Auth/Auth/CloudLogin?sys=Auth";
+  const EXAMPLES = {
+    course:"https://student.104.com.tw/epf/seniorhigh_list/?tag=HTAG-R&keyword=&page=0",
+    multi:"https://student.104.com.tw/epf/seniorhigh_list/?tag=HTAG-M&keyword=&page=0"
+  };
   const store = {
     get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
     set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -254,126 +276,229 @@ function buildDeck(P, d, tplId, blank){
   const NS="http://www.w3.org/2000/svg";
   const svg=(tag,attrs={},text)=>{const n=document.createElementNS(NS,tag);for(const[k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!=null)n.textContent=text;return n;};
 
-  /* ---------- 思考架構 ---------- */
-  const Q=(label,q,ph)=>({label,q,ph});
-  const COURSE = [
-    {name:"語文",subs:["國文","英文","第二外語"],frame:[
-      Q("主題","這份成果處理的是什麼文本、主題或任務？","例：讀〈背影〉後寫一篇自己和爸爸的故事"),
-      Q("做法","你做了什麼？（閱讀、寫作、翻譯、口說、報告）","例：先列出三件記得的事，再挑一件寫"),
-      Q("觀點","你提出了什麼自己的想法或詮釋？","例：我覺得父愛不一定要說出口"),
-      Q("修改","寫作或表達時卡在哪？怎麼改？","例：第一版太像流水帳，老師建議只寫一個畫面"),
-      Q("收穫","這次讓你的語文能力有什麼改變？","例：我比較會抓重點，不會每件事都寫")]},
-    {name:"數學",subs:["數學"],frame:[
-      Q("問題","你要解決的是什麼問題或概念？","例：用三角函數算出校門口旗桿高度"),
-      Q("方法","你用了什麼方法或推理步驟？","例：量自己到旗桿的距離和仰角"),
-      Q("修正","有沒有算錯或卡住？後來怎麼修正？","例：一開始忘了加上眼睛的高度"),
-      Q("應用","這個概念可以用在生活或其他科目的哪裡？","例：蓋房子、測量山的高度"),
-      Q("改變","你對數學的看法有什麼改變？","例：原來公式不是只能背，可以真的用")]},
-    {name:"自然",subs:["物理","化學","生物","地球科學","自然探究與實作"],frame:[
-      Q("提問","你想探究什麼問題？為什麼好奇？","例：為什麼切開的蘋果會變黃？"),
-      Q("假設","你的假設或預測是什麼？","例：泡鹽水可以讓它比較慢變黃"),
-      Q("實驗","怎麼做？（材料、步驟、做了幾次）","例：準備清水、鹽水、檸檬水三組，每 10 分鐘拍照"),
-      Q("結果","結果和預測一樣嗎？你怎麼解釋？","例：檸檬水最有效，鹽水第二"),
-      Q("改進","有哪些誤差或下次可以改進的地方？","例：每片蘋果厚度不同，下次要用切片器")]},
-    {name:"社會",subs:["歷史","地理","公民與社會","社會探究與實作"],frame:[
-      Q("議題","你關注的議題或事件是什麼？","例：桃園埤塘為什麼越來越少"),
-      Q("資料","你查了哪些資料？（書、網站、訪談、實地）","例：看了農業部的資料，也訪問了阿公"),
-      Q("觀點","有哪些不同的觀點？你怎麼判斷？","例：開發派和保育派的理由都有道理"),
-      Q("看法","你得到什麼結論或自己的看法？","例：可以保留一部分埤塘當滯洪池"),
-      Q("連結","這和你的生活或社會有什麼關係？","例：我家附近就有一個埤塘被填平了")]},
-    {name:"藝能",subs:["音樂","美術","藝術生活"],frame:[
-      Q("主題","作品的主題或想表達的感受？","例：用藍色系畫出考試前的焦慮"),
-      Q("技法","用了什麼媒材、技法或曲目？","例：壓克力顏料、乾刷技法"),
-      Q("過程","創作或練習的過程？（草稿、修改）","例：畫了三張草稿，第二張最接近想法"),
-      Q("自評","最滿意和最不滿意的地方？","例：滿意顏色層次，不滿意人物比例"),
-      Q("理解","讓你對藝術有什麼新的理解？","例：畫不像也沒關係，重點是情緒有出來")]},
-    {name:"科技",subs:["生活科技","資訊科技"],frame:[
-      Q("目標","你要解決什麼問題或做出什麼作品？","例：做一個會提醒喝水的小程式"),
-      Q("設計","你的設計構想或程式邏輯？","例：每 60 分鐘跳出提醒，可以按延後"),
-      Q("測試","製作或測試的過程？（第幾版、改了什麼）","例：第一版一直重複跳，第二版加了計時器"),
-      Q("除錯","遇到的錯誤或失敗，怎麼解決？","例：上網查錯誤訊息，問同學"),
-      Q("成果","成品效果和還能改進的地方？","例：可以用了，但介面還很陽春")]},
-    {name:"健體",subs:["體育","健康與護理"],frame:[
-      Q("主題","學習的主題或技能？","例：籃球上籃"),
-      Q("練習","你怎麼練習或實踐？（頻率、方法）","例：每週三次，每次 20 分鐘"),
-      Q("變化","一開始和後來差多少？（可以有數字）","例：10 次進 2 球 → 10 次進 6 球"),
-      Q("瓶頸","遇到的瓶頸和你的調整？","例：左手不順，改成先練運球"),
-      Q("影響","對你的生活習慣或健康觀念有什麼影響？","例：開始固定運動，睡得比較好")]},
-    {name:"其他",subs:["家政","全民國防教育","校訂必修","多元選修","其他"],frame:[
-      Q("主題","這份成果的主題是什麼？","例：設計一份一週的平價便當菜單"),
-      Q("做法","你做了什麼？用了哪些方法？","例：比較三家超市的價格"),
-      Q("過程","過程中最花時間或最關鍵的步驟？","例：計算每餐的營養和預算"),
-      Q("困難","遇到什麼困難？怎麼解決？","例：預算超過，改用當季蔬菜"),
-      Q("收穫","學到什麼？以後會怎麼用？","例：我會開始自己帶便當")]}
+  /* ---------- 五個向度 ---------- */
+  const DIMS=[["M","學習動機"],["C","學習內容"],["P","學習過程及挑戰"],["R","學習成果"],["F","學習反思"]];
+  const DIM_NAME=Object.fromEntries(DIMS);
+  const DIM_ORDER=Object.fromEntries(DIMS.map((d,i)=>[d[0],i]));
+  const LEVELS=[
+    {lv:1,name:"基礎",n:3,desc:"剛開始練習，先寫最重要的 3 題"},
+    {lv:2,name:"標準",n:5,desc:"一份完整的成果，5 題"},
+    {lv:3,name:"進階",n:8,desc:"想做出有深度的成果，8 題"}
   ];
-  const MULTI = {
-    "社團活動":[Q("社團","什麼社團？你參加多久？","例：熱音社，高一上到現在"),Q("參與","你在社團做了哪些事？","例：每週練團、準備期末成發"),Q("事件","印象最深的一次活動？","例：成發當天鼓棒斷掉"),Q("合作","和夥伴合作時遇到什麼問題？怎麼處理？","例：練團時間喬不攏，改成線上排班"),Q("成長","你在社團中成長了什麼？","例：上台不再那麼緊張")],
-    "幹部經歷":[Q("職位","什麼職位？任期多久？","例：學藝股長，高一上下學期"),Q("職責","主要負責哪些工作？","例：收作業、布置教室"),Q("事件","一件你處理過的具體事情？","例：校慶布置比賽，帶全班做看板"),Q("困難","遇到的困難（溝通、時間）怎麼處理？","例：同學不交作業，我改成每天提醒"),Q("體會","對責任或領導有什麼體會？","例：當幹部要先做好自己")],
-    "服務學習":[Q("服務","服務地點、對象和時數？","例：社區圖書館，共 12 小時"),Q("內容","你做了哪些服務？","例：整理書架、帶小朋友說故事"),Q("時刻","一個讓你印象深刻的人或時刻？","例：一個小朋友每週都來找我"),Q("困難","服務時遇到的困難？","例：小朋友不聽話，我改用遊戲"),Q("改變","服務帶給你什麼改變？","例：我開始想當老師")],
-    "檢定證照":[Q("證照","檢定名稱、等級和取得時間？","例：全民英檢中級初試，高一下"),Q("動機","為什麼想考？","例：想知道自己的英文程度"),Q("準備","怎麼準備？花了多久？","例：每天聽 15 分鐘英文新聞，兩個月"),Q("困難","準備時的困難？","例：聽力一直跟不上，改成先看字幕"),Q("意義","這張證照對你的意義、下一步？","例：下一步想考中高級")],
-    "競賽參與":[Q("比賽","比賽名稱、層級和結果？","例：校內科展，佳作"),Q("動機","為什麼參加？","例：老師推薦，我也對植物有興趣"),Q("準備","怎麼準備？","例：每週放學留下來做實驗"),Q("困難","準備或比賽時的困難？","例：上台報告超時被扣分"),Q("學到","不論結果，學到什麼？","例：報告要先抓時間練習")],
-    "彈性學習（自主學習）":[Q("主題","主題是什麼？為什麼想學？","例：學用 Canva 做海報，因為社團招生需要"),Q("計畫","原本的計畫？","例：8 週，前 4 週看教學，後 4 週做作品"),Q("執行","實際怎麼做？有沒有調整？","例：教學影片太多，改成只看 3 支"),Q("成果","最後做出什麼？","例：三張招生海報，其中一張被社團採用"),Q("反思","學到什麼？下次怎麼做？","例：下次要先問使用者想要什麼")],
-    "作品成果":[Q("作品","作品是什麼？用途？","例：一支介紹學校的短影片"),Q("動機","為什麼想做？","例：想讓國中生認識武陵"),Q("過程","製作過程？","例：寫腳本、拍攝、剪輯"),Q("困難","困難與解決？","例：收音很差，改用手機外接麥克風"),Q("收穫","收穫和未來想做的？","例：想繼續學剪輯")],
-    "職場學習":[Q("場域","在哪裡、做多久？","例：牙醫診所見習，暑假三天"),Q("內容","你觀察或參與了什麼？","例：看診流程、消毒器械"),Q("印象","印象最深的一件事？","例：醫生怎麼安撫怕痛的小孩"),Q("落差","和你原本想像的差別？","例：比想像中需要更多耐心"),Q("影響","對你選科系或未來的影響？","例：更確定想讀醫護相關")],
-    "其他多元表現":[Q("經歷","這是什麼經歷？什麼時候？","例：參加大學營隊"),Q("參與","你做了什麼？","例：上課、分組做專題"),Q("事件","印象最深的一件事？","例：和陌生同學一起上台報告"),Q("困難","遇到的困難與解決？","例：組員意見不同，最後投票"),Q("收穫","收穫和下一步？","例：想多了解這個科系")]
+  /* [向度, 程度, 標籤, 問題, 範例] */
+  const F=(dim,lv,label,q,ph)=>({dim,lv,label,q,ph});
+
+  const READ=[
+    F("C",1,"文本","讀了哪一篇文章或作品？主要在講什麼？","例：〈大同與小康〉，講儒家理想中的大同社會，和退而求其次的小康"),
+    F("P",1,"整理","你怎麼整理這篇文章？（筆記、表格、心智圖）","例：用表格比較大同和小康在政治、社會、經濟上的差別"),
+    F("F",1,"心得","讀完後你最大的感受或想法？","例：大同很理想，但現在的社會比較像小康"),
+    F("M",2,"動機","這份成果是怎麼開始的？為什麼選這個主題？","例：老師出的專題，我對「理想社會」很好奇"),
+    F("R",2,"連結","文章內容和現代社會有什麼相似的地方？舉一個例子","例：北歐的社會福利很像大同的「老有所終」"),
+    F("P",3,"挑戰","閱讀或寫作時卡在哪？怎麼解決？","例：文言文看不懂，先查翻譯再對照原文"),
+    F("R",3,"延伸","你有沒有把文本的想法延伸成作品或專題？","例：設計「大同小康智慧家居」，比較兩種系統的優缺點"),
+    F("F",3,"觀點","你同意作者的觀點嗎？你自己的看法是什麼？","例：禮的精神可以保留，但不能限制個人自由")
+  ];
+  const ACT=[
+    F("C",1,"課程","這門課（或這個單元）在做什麼？","例：看電影學英文，最後要分組幫動畫配音"),
+    F("P",1,"活動","你做了哪些活動或任務？","例：做電影翻翻書、分組配音、上台成果發表"),
+    F("F",1,"成長","你覺得自己哪裡進步了？","例：比較敢開口說英文，也學會掌握語調"),
+    F("M",2,"選課","為什麼選這門課或這個主題？","例：平常沒機會用英文，想試試看配音"),
+    F("P",2,"分工","你負責什麼？怎麼和組員分工？","例：我當組長，也負責配長頸鹿的聲音"),
+    F("P",3,"挑戰","過程中遇到什麼困難？怎麼解決？","例：口型對不上，分段練習很多次"),
+    F("R",3,"回饋","老師或同學給你什麼回饋？","例：老師說我的語調很自然，同學說我很會帶組"),
+    F("F",3,"展望","這門課之後，你還想做什麼？","例：想參加英文演講比賽")
+  ];
+  const MATH=[
+    F("C",1,"問題","你要解決的問題或學的概念是什麼？","例：用三角函數算出校門口旗桿的高度"),
+    F("P",1,"方法","你用了什麼方法或步驟？","例：量自己到旗桿的距離和仰角，再代公式"),
+    F("F",1,"收穫","做完之後你學會了什麼？","例：知道三角函數可以拿來測量真實的東西"),
+    F("M",2,"動機","為什麼選這份作業或這個題目？","例：覺得算真實的東西比算課本題目有趣"),
+    F("P",2,"修正","有沒有算錯或卡住？怎麼修正？","例：一開始忘了加上眼睛的高度，第二次才算對"),
+    F("R",3,"應用","這個概念還能用在生活或其他科目的哪裡？","例：測量山的高度、建築設計"),
+    F("R",3,"呈現","你怎麼呈現成果？（圖表、程式、模型）","例：用 GeoGebra 畫出示意圖"),
+    F("F",3,"改變","你對數學的看法有什麼改變？","例：公式不是只能背，可以真的拿來用")
+  ];
+  const SCI=[
+    F("C",1,"提問","你想探究什麼問題？","例：為什麼切開的蘋果會變黃？"),
+    F("P",1,"實驗","怎麼做？（材料、步驟、做了幾次）","例：準備清水、鹽水、檸檬水三組，每 10 分鐘拍照"),
+    F("R",1,"結果","結果是什麼？","例：檸檬水那組最慢變黃"),
+    F("M",2,"好奇","為什麼對這個問題好奇？","例：便當裡的蘋果每次打開都變黃"),
+    F("F",2,"解釋","結果和你的預測一樣嗎？你怎麼解釋？","例：檸檬裡的維生素 C 可能減緩了氧化"),
+    F("C",3,"假設","你一開始的假設是什麼？","例：我以為泡鹽水最有效"),
+    F("P",3,"誤差","有哪些誤差或可以改進的地方？","例：每片蘋果厚度不同，下次用切片器"),
+    F("F",3,"延伸","如果再做一次，你想延伸探究什麼？","例：比較不同水果的變色速度")
+  ];
+  const SOC=[
+    F("C",1,"議題","你關注的議題或事件是什麼？","例：桃園的埤塘為什麼越來越少"),
+    F("P",1,"資料","你查了哪些資料？（書、網站、訪談、實地）","例：看政府的統計資料，也訪問了阿公"),
+    F("F",1,"看法","你的結論或自己的看法？","例：可以保留部分埤塘當滯洪池"),
+    F("M",2,"動機","為什麼關心這個議題？","例：我家附近的埤塘被填平蓋房子"),
+    F("C",2,"觀點","這個議題有哪些不同的觀點？","例：開發派重視經濟，保育派重視生態和防洪"),
+    F("P",3,"判斷","你怎麼判斷資料可不可信？","例：同一件事至少比對兩個來源"),
+    F("R",3,"呈現","你怎麼呈現成果？","例：做成埤塘數量變化的地圖和時間軸"),
+    F("F",3,"行動","這個議題和你的生活有什麼關係？你能做什麼？","例：參加社區的埤塘清潔活動")
+  ];
+  const ART=[
+    F("C",1,"作品","作品的主題或曲目是什麼？","例：用藍色系畫出考試前的焦慮"),
+    F("P",1,"過程","創作或練習的過程？","例：畫了三張草稿，第二張最接近想法"),
+    F("F",1,"感受","完成後的感受？","例：覺得情緒有被畫出來"),
+    F("M",2,"靈感","靈感從哪裡來？","例：段考前一晚睡不著的感覺"),
+    F("C",2,"技法","用了什麼媒材、技法或樂器？","例：壓克力顏料的乾刷技法"),
+    F("P",3,"挑戰","最難的地方？怎麼克服？","例：人物比例不對，參考照片重畫"),
+    F("R",3,"自評","最滿意和最想改的地方？","例：滿意顏色層次，想改構圖"),
+    F("F",3,"理解","對藝術有什麼新的理解？","例：畫得不像沒關係，重點是情緒有出來")
+  ];
+  const TECH=[
+    F("C",1,"目標","你要解決的問題或做出的作品？","例：做一個提醒喝水的小程式"),
+    F("P",1,"製作","怎麼做？（設計、程式、工具）","例：用 Scratch 寫計時器"),
+    F("R",1,"成品","最後做出什麼？","例：每 60 分鐘會跳出提醒"),
+    F("M",2,"動機","為什麼想做這個？","例：我常常一整天忘記喝水"),
+    F("P",2,"除錯","遇到錯誤怎麼解決？","例：提醒一直重複跳，加了判斷式才好"),
+    F("C",3,"設計","你的設計構想或流程？","例：先畫流程圖，再寫程式"),
+    F("R",3,"測試","誰試用過？回饋是什麼？","例：家人試用，說按鈕太小"),
+    F("F",3,"改進","下一版想怎麼改？","例：加入統計每天喝水量的功能")
+  ];
+  const PE=[
+    F("C",1,"技能","學習的主題或技能？","例：籃球上籃"),
+    F("P",1,"練習","怎麼練習？（頻率、方法）","例：每週三次，每次 20 分鐘"),
+    F("R",1,"變化","練習前後差多少？（可以用數字）","例：10 次進 2 球 → 10 次進 6 球"),
+    F("M",2,"動機","為什麼想練好？","例：班際比賽想上場"),
+    F("P",2,"瓶頸","遇到瓶頸怎麼調整？","例：左手不順，先回去練運球"),
+    F("C",3,"原理","你了解了哪些動作原理或健康知識？","例：起跳腳和出手的手要在不同邊"),
+    F("F",3,"習慣","對你的生活習慣有什麼影響？","例：開始固定運動，睡得比較好"),
+    F("F",3,"目標","下一個目標？","例：學會反手上籃")
+  ];
+  const GEN=[
+    F("C",1,"主題","這份成果的主題是什麼？","例：設計一週的平價便當菜單"),
+    F("P",1,"做法","你做了什麼？","例：比較三家超市的價格"),
+    F("F",1,"收穫","學到什麼？","例：會看營養標示，也會算預算"),
+    F("M",2,"動機","為什麼選這個主題？","例：想自己帶便當省錢"),
+    F("P",2,"困難","遇到的困難與解決？","例：預算超過，改用當季蔬菜"),
+    F("C",3,"重點","這門課教了哪些關鍵知識或技能？","例：營養素分類、預算規劃"),
+    F("R",3,"成果","最後做出什麼？怎麼呈現？","例：做成一週菜單海報"),
+    F("F",3,"應用","以後會怎麼用？","例：開始每週自己帶兩天便當")
+  ];
+  const COURSE=[
+    {name:"語文",subs:["國文","英文","第二外語"],types:[
+      {id:"read",name:"文本閱讀型",desc:"讀一篇文章或作品，做筆記、分析、寫心得，或延伸成專題。",ex:"範例：國文〈大同與小康〉課堂筆記",frame:READ},
+      {id:"act",name:"課程活動型",desc:"課堂活動、分組任務、表演或發表，例如配音、翻翻書、話劇。",ex:"範例：英文「看電影學英文」配音活動",frame:ACT}]},
+    {name:"數學",subs:["數學"],frame:MATH},
+    {name:"自然",subs:["物理","化學","生物","地球科學","自然探究與實作"],frame:SCI},
+    {name:"社會",subs:["歷史","地理","公民與社會","社會探究與實作"],frame:SOC},
+    {name:"藝能",subs:["音樂","美術","藝術生活"],frame:ART},
+    {name:"科技",subs:["生活科技","資訊科技"],frame:TECH},
+    {name:"健體",subs:["體育","健康與護理"],frame:PE},
+    {name:"生活",subs:["家政","全民國防教育"],frame:GEN},
+    {name:"校訂與選修",subs:["校訂必修","多元選修","其他課程"],ask:true}
+  ];
+  const FIELDS=[["語文",ACT],["數學",MATH],["自然",SCI],["社會",SOC],["藝能",ART],["科技",TECH],["健體",PE],["跨領域／其他",GEN]];
+  const MULTI={
+    "社團活動":[F("C",1,"社團","什麼社團？你參加多久？","例：熱音社，高一上到現在"),F("P",1,"參與","你在社團做了哪些事？","例：每週練團、準備期末成發"),F("F",1,"成長","你在社團成長了什麼？","例：上台不再那麼緊張"),F("M",2,"動機","為什麼加入這個社團？","例：國中就喜歡打鼓"),F("P",2,"合作","和夥伴合作遇到什麼問題？怎麼處理？","例：練團時間喬不攏，改成線上排班"),F("R",3,"事件","印象最深的一次活動或成果？","例：成發當天鼓棒斷掉，還是撐完整首"),F("R",3,"角色","你負責的角色或貢獻？","例：負責排練進度表"),F("F",3,"連結","社團經驗和你未來的方向有什麼關係？","例：想讀活動企劃相關科系")],
+    "幹部經歷":[F("C",1,"職位","什麼職位？任期多久？","例：學藝股長，高一整年"),F("P",1,"職責","主要負責哪些工作？","例：收作業、布置教室"),F("F",1,"體會","對責任有什麼體會？","例：要先把自己的事做好"),F("M",2,"動機","為什麼擔任這個職位？","例：被同學推薦，想試試看"),F("P",2,"困難","遇到的困難怎麼處理？","例：同學不交作業，我改成每天提醒"),F("R",3,"事件","一件你處理過的具體事情？","例：帶全班完成校慶看板"),F("R",3,"成果","你的努力帶來什麼改變？","例：班上作業繳交率變高"),F("F",3,"領導","對領導或溝通的看法有什麼改變？","例：用命令不如大家一起做")],
+    "服務學習":[F("C",1,"服務","服務地點、對象和時數？","例：社區圖書館，共 12 小時"),F("P",1,"內容","你做了哪些服務？","例：整理書架、帶小朋友說故事"),F("F",1,"改變","服務帶給你什麼改變？","例：變得更有耐心"),F("M",2,"動機","為什麼選這個服務？","例：我很喜歡小朋友"),F("P",2,"困難","服務時遇到的困難？","例：小朋友不聽話，我改用遊戲"),F("R",3,"時刻","一個讓你印象深刻的人或時刻？","例：一個小朋友每週都來找我"),F("C",3,"觀察","你觀察到什麼社會需求？","例：有些孩子放學後沒人陪讀"),F("F",3,"連結","和你未來方向的關係？","例：開始想當老師")],
+    "檢定證照":[F("C",1,"證照","檢定名稱、等級和取得時間？","例：全民英檢中級初試，高一下"),F("P",1,"準備","怎麼準備？花了多久？","例：每天聽 15 分鐘英文新聞，兩個月"),F("F",1,"意義","這張證照對你的意義？","例：知道自己做得到"),F("M",2,"動機","為什麼想考？","例：想知道自己的英文程度"),F("P",2,"困難","準備時的困難？","例：聽力一直跟不上，改成先看字幕"),F("R",3,"結果","成績或結果的細節？","例：聽力分數比閱讀高"),F("C",3,"方法","你找到的有效學習方法？","例：跟著音檔一起唸的影子跟讀法"),F("F",3,"下一步","下一步的目標？","例：考中高級")],
+    "競賽參與":[F("C",1,"比賽","比賽名稱、層級和結果？","例：校內科展，佳作"),F("P",1,"準備","怎麼準備？","例：每週放學留下來做實驗"),F("F",1,"學到","不論結果，學到什麼？","例：報告前要先抓時間練習"),F("M",2,"動機","為什麼參加？","例：老師推薦，我也對植物有興趣"),F("P",2,"困難","準備或比賽時的困難？","例：上台報告超時被扣分"),F("C",3,"內容","參賽作品或主題的內容？","例：植物向光性的實驗"),F("R",3,"回饋","評審或觀眾的回饋？","例：評審說數據還不夠多"),F("F",3,"下次","下次想怎麼做？","例：多做幾組對照實驗")],
+    "彈性學習（自主學習）":[F("C",1,"主題","自主學習的主題是什麼？","例：學用 Canva 做海報"),F("P",1,"執行","實際怎麼做？","例：看 3 支教學影片，每週做一張"),F("R",1,"成果","最後做出什麼？","例：三張社團招生海報"),F("M",2,"動機","為什麼想學這個？","例：社團招生需要宣傳"),F("P",2,"調整","計畫有沒有調整？為什麼？","例：教學影片太多，改成只看 3 支"),F("C",3,"計畫","原本的計畫（週數、目標）？","例：8 週，前 4 週學、後 4 週做"),F("F",3,"反思","學到什麼？","例：做之前要先問使用者想要什麼"),F("F",3,"下次","下次會怎麼做？","例：先訂每週的小目標")],
+    "作品成果":[F("C",1,"作品","作品是什麼？","例：一支介紹學校的短影片"),F("P",1,"過程","製作過程？","例：寫腳本、拍攝、剪輯"),F("F",1,"收穫","收穫是什麼？","例：學會用剪輯軟體"),F("M",2,"動機","為什麼想做？","例：想讓國中生認識武陵"),F("P",2,"困難","困難與解決？","例：收音很差，改用外接麥克風"),F("C",3,"構想","作品的構想或設計重點？","例：用學生的視角來拍"),F("R",3,"回饋","別人看了的反應？","例：被學校拿去招生用"),F("F",3,"未來","未來想做什麼？","例：想學動畫")],
+    "職場學習":[F("C",1,"場域","在哪裡、做多久？","例：牙醫診所見習，暑假三天"),F("P",1,"內容","觀察或參與了什麼？","例：看診流程、器械消毒"),F("F",1,"影響","對你選科系有什麼影響？","例：更確定想讀醫護相關"),F("M",2,"動機","為什麼選這個場域？","例：想了解醫護工作"),F("P",2,"落差","和你原本想像的差別？","例：比想像中需要更多耐心"),F("R",3,"印象","印象最深的一件事？","例：醫生怎麼安撫怕痛的小孩"),F("C",3,"能力","這份工作需要哪些能力？","例：溝通能力、細心"),F("F",3,"準備","你現在可以開始準備什麼？","例：加強生物")],
+    "其他多元表現":[F("C",1,"經歷","這是什麼經歷？","例：參加大學營隊"),F("P",1,"參與","你做了什麼？","例：上課、分組做專題"),F("F",1,"收穫","收穫是什麼？","例：更認識這個科系"),F("M",2,"動機","為什麼參加？","例：想了解資工系在學什麼"),F("P",2,"困難","困難與解決？","例：組員意見不同，最後投票"),F("R",3,"事件","印象最深的一件事？","例：第一次在陌生人面前報告"),F("C",3,"學到","學到哪些新知識？","例：程式的基本概念"),F("F",3,"下一步","下一步打算？","例：開始自學 Python")]
   };
   const CAT_NAME={course:"課程學習成果",multi:"多元表現"};
   const TOOLS=["選科目／類別","整理想法","簡報模板","初稿檢核"];
-  function frameFor(cat,sub){
-    if(cat==="course"){ const g=COURSE.find(g=>g.subs.includes(sub)); return g?g.frame:COURSE[COURSE.length-1].frame; }
-    return MULTI[sub]||MULTI["其他多元表現"];
-  }
 
   /* ---------- 狀態 ---------- */
-  let st = Object.assign({cat:"course",tool:0,sub:{course:"",multi:""},data:{}}, store.get("wl-kit")||{});
-  const save=()=>store.set("wl-kit",st);
+  let st = Object.assign({cat:"course",tool:0,sub:{course:"",multi:""},data:{}}, store.get("wl-kit2")||{});
+  const save=()=>store.set("wl-kit2",st);
   const key=()=>st.cat+"|"+st.sub[st.cat];
-  const cur=()=>{ const k=key(); if(!st.data[k]) st.data[k]={ans:[],ai:null,title:"",tpl:""}; return st.data[k]; };
+  const cur=()=>{ const k=key(); if(!st.data[k]) st.data[k]={ans:{},ai:null,title:"",tpl:"",level:2,type:"",course:null}; return st.data[k]; };
+  const groupOf=sub=>COURSE.find(g=>g.subs.includes(sub));
+  function fullFrame(){
+    const s=st.sub[st.cat]; if(!s) return [];
+    if(st.cat==="multi") return MULTI[s]||MULTI["其他多元表現"];
+    const g=groupOf(s), d=cur();
+    if(g.types){ const t=g.types.find(t=>t.id===d.type); return t?t.frame:null; }
+    if(g.ask){ if(!d.course||!d.course.field) return null; const f=FIELDS.find(f=>f[0]===d.course.field); return f?f[1]:GEN; }
+    return g.frame;
+  }
+  function frame(){
+    const fr=fullFrame(); if(!fr) return null;
+    const lv=cur().level||2;
+    return fr.filter(q=>q.lv<=lv).slice().sort((a,b)=>DIM_ORDER[a.dim]-DIM_ORDER[b.dim]);
+  }
+  const qkey=q=>q.label+"|"+q.q;
+  const ansOf=(d,q)=>(d.ans&&d.ans[qkey(q)])||"";
+  function ready(){ const s=st.sub[st.cat]; if(!s) return false; return !!fullFrame(); }
+  function ctxLine(){
+    const d=cur(), s=st.sub[st.cat], g=st.cat==="course"?groupOf(s):null;
+    let t=CAT_NAME[st.cat]+"／"+s;
+    if(g&&g.types&&d.type) t+="／"+g.types.find(x=>x.id===d.type).name;
+    if(g&&g.ask&&d.course&&d.course.name) t+="："+d.course.name;
+    return t;
+  }
 
   /* ---------- 外部功能 ---------- */
   let SAMPLE=null, DL=null;
   if(window.claude && claude.use){
     claude.use("sample").then(s=>{SAMPLE=s; if(st.tool===1||st.tool===3) render();}).catch(()=>{});
-    claude.use("downloads").then(x=>{DL=x; if(st.tool===2) render();}).catch(()=>{});
+    claude.use("downloads").then(x=>{DL=x;}).catch(()=>{});
   }
-  const errText = c => ({not_granted:"你沒有允許 AI 功能，已改用基本版。",sampling_disabled:"這個帳號不能使用 AI，已改用基本版。",rate_limited:"AI 使用次數暫時用完了，請稍後再試，先給你基本版。",refused:"AI 無法處理這段內容，先給你基本版。",invalid_json:"AI 回覆格式有誤，可以再按一次試試。",session_expired:"登入已過期，請重新登入 Claude。"}[c]||"AI 暫時連不上，已改用基本版。");
+  const errText = c => ({not_granted:"你沒有允許 AI 功能，已改用基本版。",sampling_disabled:"這個帳號不能使用 AI，已改用基本版。",rate_limited:"AI 使用次數暫時用完了，先給你基本版。",refused:"AI 無法處理這段內容，先給你基本版。",invalid_json:"AI 回覆格式有誤，可以再按一次試試。",session_expired:"登入已過期，請重新登入 Claude。"}[c]||"AI 暫時連不上，已改用基本版。");
+
+  /* ---------- 文字工具 ---------- */
+  const sents = t => (t||"").split(/[。！？!?\n；;]+/).map(x=>x.trim()).filter(Boolean);
+  const clip = (t,n)=> t.length>n ? t.slice(0,n-1)+"…" : t;
+  function copyText(ta,msg){
+    const fb=()=>{ta.focus();ta.select();msg.textContent="已選取，請按 Ctrl+C 複製。";};
+    try{navigator.clipboard.writeText(ta.value).then(()=>{msg.textContent="已複製！";},fb);}catch(e){fb();}
+  }
+  function courseInfo(){
+    const d=cur(); if(!d.course) return "";
+    return `課程名稱：${d.course.name||""}\n課程重點：${d.course.about||""}`;
+  }
+  function answersText(fr,d){
+    return fr.map(q=>`【${DIM_NAME[q.dim]}｜${q.label}】${q.q}\n學生：${ansOf(d,q).trim()||"（沒寫）"}`).join("\n");
+  }
+
+  /* 基本版：依五個向度重新歸類 */
+  function localResult(){
+    const fr=frame(), d=cur();
+    const byDim=DIMS.map(([k,n])=>({k,n,items:[]}));
+    fr.forEach(q=>{ const b=byDim[DIM_ORDER[q.dim]]; sents(ansOf(d,q)).forEach(x=>b.items.push(x)); });
+    return {
+      titles:[],
+      mindmap:{center:d.title||st.sub[st.cat], branches:byDim.map(b=>({label:b.n,items:b.items.length?b.items.slice(0,4).map(x=>clip(x,24)):["（還沒寫）"]}))},
+      slides:byDim.map(b=>({heading:b.n,bullets:b.items.length?b.items:["（待補：寫下你的"+b.n+"）"]})),
+      summary:"",
+      missing:fr.filter(q=>!ansOf(d,q).trim()).map(q=>q.q),
+      local:true
+    };
+  }
 
   /* ---------- 免費 AI 指令 ---------- */
   const AI_SITES=[["ChatGPT","https://chatgpt.com/"],["Gemini","https://gemini.google.com/"],["Copilot","https://copilot.microsoft.com/"]];
-  function aiBox(id,getPrompt,intro){
-    const ta=el("textarea",{id,readonly:"readonly",class:"out",style:"min-height:160px",hidden:"hidden"});
-    const msg=el("span",{class:"status"});
-    const btn=el("button",{type:"button",class:"btn",text:"產生並複製 AI 指令",onclick:()=>{
-      const p=getPrompt(); if(!p){msg.textContent="先寫一些內容，才能產生指令。";return;}
-      ta.value=p; ta.hidden=false; copyText(ta,msg);
-    }});
-    return el("div",{class:"note"},
-      el("b",{text:"用免費 AI 潤飾"}), el("p",{class:"hint",style:"margin:4px 0 8px",text:intro}),
-      el("div",{class:"row"},btn,msg),
-      ta,
-      el("div",{class:"row",style:"margin-top:8px;font-size:14px"},"貼到：",...AI_SITES.map(([n,u])=>el("a",{href:u,target:"_blank",rel:"noopener",text:n}))),
-      el("p",{class:"hint",style:"margin-top:6px",text:"使用前請確認符合該 AI 平台的年齡規定。不要在指令裡加上姓名、學號、地址等個人資料。"}));
-  }
+  function aiLinks(){ return el("div",{class:"row",style:"margin-top:8px;font-size:14px"},"貼到：",...AI_SITES.map(([n,u])=>el("a",{href:u,target:"_blank",rel:"noopener",text:n}))); }
   function buildPrompt(fr,d){
-    if(!d.ans.some(x=>(x||"").trim())) return "";
+    if(!fr.some(q=>ansOf(d,q).trim())) return "";
     return [
       "你是台灣高中「學習歷程檔案」的寫作教練。請幫我把下面的想法整理成簡報內容。",
-      `類型：${CAT_NAME[st.cat]}　細項：${st.sub[st.cat]}`,
+      `類型：${ctxLine()}`,
+      courseInfo(),
       d.title?`我目前的標題：${d.title}`:"",
-      "","我的想法：",
-      ...fr.map((f,i)=>`【${f.label}】${f.q}\n我：${(d.ans[i]||"").trim()||"（沒寫）"}`),
+      "","我的想法：", answersText(fr,d).replace(/學生：/g,"我："),
       "","規則：",
       "1. 只用我寫過的事實，不要編造經歷、數字、結果或感受。資訊不足的地方寫「（待補：要補什麼）」。",
-      "2. 用高中生自然、簡單的語氣，第一人稱，不要華麗詞藻。",
-      "3. 用繁體中文。",
+      "2. 把我的內容重新歸類到五個向度：學習動機、學習內容、學習過程及挑戰、學習成果、學習反思。",
+      "3. 用高中生自然、簡單的語氣，第一人稱，不要華麗詞藻。用繁體中文。",
       "","請完全照下面的格式回答，不要加其他說明，也不要用表格：",
       "【標題】","1. （25字內，包含主題和收穫）","2. ","3. ",
-      "【心智圖】","中心：（10字內）","- 分支名稱：重點；重點；重點","（共4到5個分支，分支名稱4字內，每個重點18字內）",
-      "【第2頁】頁標題","- 重點","- 重點",
-      "（從第2頁到第6頁，依序是：動機、過程、困難與解決、成果、反思；每頁2到4點，每點30字內）",
+      "【心智圖】","中心：（10字內）",
+      "- 學習動機：重點；重點","- 學習內容：重點；重點","- 學習過程及挑戰：重點；重點","- 學習成果：重點；重點","- 學習反思：重點；重點",
+      "（五個分支名稱照抄，每支 2 到 4 個重點，每個重點 18 字內）",
+      "【第2頁】學習動機：（自訂短標題）","- 重點","- 重點",
+      "（第2到第6頁依序是：學習動機、學習內容、學習過程及挑戰、學習成果、學習反思；每頁 2 到 4 點，每點 30 字內）",
       "【簡述】（80到120字，上傳平台用）",
       "【還可以補充】","- （最多3個我該再補充的問題）"
-    ].filter(x=>x!==null).join("\n");
+    ].filter(x=>x!=="").join("\n");
   }
   function parseAI(txt){
     const r={titles:[],mindmap:{center:"",branches:[]},slides:[],summary:"",missing:[]};
@@ -402,27 +527,11 @@ function buildDeck(P, d, tplId, blank){
     return r;
   }
 
-  /* ---------- 文字工具 ---------- */
-  const sents = t => (t||"").split(/[。！？!?\n；;]+/).map(x=>x.trim()).filter(Boolean);
-  const clip = (t,n)=> t.length>n ? t.slice(0,n-1)+"…" : t;
-  function localResult(){
-    const fr=frameFor(st.cat,st.sub[st.cat]), d=cur();
-    const center = d.title || st.sub[st.cat];
-    return {
-      titles:[],
-      mindmap:{center, branches: fr.map((f,i)=>({label:f.label, items: sents(d.ans[i]).slice(0,3).map(x=>clip(x,22))})).map(b=>b.items.length?b:{label:b.label,items:["（還沒寫）"]})},
-      slides: fr.map((f,i)=>({heading:f.label+"："+f.q.replace(/[？?].*$/,""), bullets: sents(d.ans[i]).length?sents(d.ans[i]):["（待補："+f.q+"）"]})),
-      summary: "",
-      missing: fr.filter((f,i)=>!(d.ans[i]||"").trim()).map(f=>f.q),
-      local:true
-    };
-  }
-
   /* ---------- 版面 ---------- */
   const panel=document.getElementById("panel"), tabs=document.getElementById("toolTabs");
   function done(i){
     const s=st.sub[st.cat], d=s?cur():null;
-    if(i===0) return !!s;
+    if(i===0) return ready();
     if(i===1) return !!(d&&d.ai);
     if(i===2) return !!(d&&d.tpl);
     return false;
@@ -434,65 +543,114 @@ function buildDeck(P, d, tplId, blank){
     tabs.innerHTML="";
     TOOLS.forEach((t,i)=>tabs.append(el("button",{type:"button",class:(i===st.tool?"on ":"")+(done(i)?"done":""),onclick:()=>go(i)},el("span",{class:"n",text:i+1}),t)));
     panel.innerHTML="";
-    const needSub = st.tool>0 && !st.sub[st.cat];
-    const body = needSub ? [el("h2",{text:TOOLS[st.tool]}), el("p",{class:"note",text:"請先在工具 1 選好科目或類別。"}), el("div",{},el("button",{type:"button",class:"btn solid",text:"回到工具 1",onclick:()=>go(0)}))]
-                         : [tool0,tool1,tool2,tool3][st.tool]();
+    const need = st.tool>0 && !ready();
+    const body = need ? [el("h2",{text:TOOLS[st.tool]}), el("p",{class:"note",text:"請先在工具 1 選好科目或類別。"}), el("div",{},el("button",{type:"button",class:"btn solid",text:"回到工具 1",onclick:()=>go(0)}))]
+                      : [tool0,tool1,tool2,tool3][st.tool]();
     panel.append(...body);
-    if(!needSub){
+    if(!need){
       panel.append(el("div",{class:"navrow"},
         st.tool>0?el("button",{type:"button",class:"btn",text:"← "+TOOLS[st.tool-1],onclick:()=>go(st.tool-1)}):el("span"),
-        st.tool<3?el("button",{type:"button",class:"btn solid",text:TOOLS[st.tool+1]+" →",disabled:!st.sub[st.cat],onclick:()=>go(st.tool+1)}):el("span")));
+        st.tool<3?el("button",{type:"button",class:"btn solid",text:TOOLS[st.tool+1]+" →",disabled:!ready(),onclick:()=>go(st.tool+1)}):el("span")));
     }
   }
-  document.querySelectorAll(".drawer").forEach(b=>b.addEventListener("click",()=>{st.cat=b.dataset.cat;if(!st.sub[st.cat])st.tool=0;save();render();}));
+  document.querySelectorAll(".drawer").forEach(b=>b.addEventListener("click",()=>{st.cat=b.dataset.cat;if(!ready())st.tool=0;save();render();}));
+
+  /* 課程資訊對話框 */
+  function courseDialog(onDone){
+    const d=cur(); const c=Object.assign({name:"",about:"",field:""},d.course||{});
+    const name=el("input",{type:"text",id:"c-name",placeholder:"例：桃園在地文化探索"}); name.value=c.name;
+    const about=el("textarea",{id:"c-about",placeholder:"例：認識桃園的埤塘、客家文化和老街，最後分組做一份導覽手冊"}); about.value=c.about;
+    const fields=el("div",{class:"chips"});
+    const drawF=()=>{fields.innerHTML="";FIELDS.forEach(([f])=>fields.append(el("button",{type:"button",class:"chip"+(c.field===f?" on":""),text:f,onclick:()=>{c.field=f;drawF();}})));};
+    drawF();
+    const msg=el("p",{class:"status"});
+    const close=()=>{ov.remove();};
+    const ok=el("button",{type:"button",class:"btn solid",text:"完成，開始整理想法",onclick:()=>{
+      c.name=name.value.trim(); c.about=about.value.trim();
+      if(!c.name||!c.field){ msg.textContent="請至少填課程名稱，並選一個最接近的領域。"; return; }
+      d.course=c; save(); close(); onDone&&onDone();
+    }});
+    const ov=el("div",{class:"overlay",role:"dialog","aria-modal":"true","aria-labelledby":"c-title"},
+      el("div",{class:"dialog"},
+        el("h2",{id:"c-title",text:"先告訴我這門課在學什麼"}),
+        el("p",{class:"hint",text:st.sub[st.cat]+"的內容每個人都不一樣。簡單寫一下課程重點，下一步的問題才會符合你的課。"}),
+        el("label",{for:"c-name",class:"fld",text:"課程名稱"}),name,
+        el("label",{for:"c-about",class:"fld",text:"這門課在學什麼？（一兩句就好）"}),about,
+        el("div",{class:"fld",text:"內容最接近哪個領域？"}),fields,
+        msg,
+        el("div",{class:"row"},ok,el("button",{type:"button",class:"btn",text:"取消",onclick:close}))));
+    ov.addEventListener("click",e=>{if(e.target===ov)close();});
+    ov.addEventListener("keydown",e=>{if(e.key==="Escape")close();});
+    document.body.append(ov); name.focus();
+  }
 
   /* 工具 1 */
   function tool0(){
-    const pick = s=>{st.sub[st.cat]=s;save();render();};
+    const pick = s=>{
+      st.sub[st.cat]=s; save();
+      const g=st.cat==="course"?groupOf(s):null;
+      if(g&&g.ask&&!(cur().course&&cur().course.field)){ render(); courseDialog(()=>go(1)); return; }
+      render();
+    };
     const chipsFor = list => el("div",{class:"chips"}, list.map(s=>el("button",{type:"button",class:"chip"+(st.sub[st.cat]===s?" on":""),text:s,onclick:()=>pick(s)})));
     const groups = st.cat==="course"
       ? COURSE.map(g=>el("div",{class:"group"},el("span",{text:g.name}),chipsFor(g.subs)))
       : [el("div",{class:"group"},chipsFor(Object.keys(MULTI)))];
-    const s=st.sub[st.cat];
+    const s=st.sub[st.cat], g=(st.cat==="course"&&s)?groupOf(s):null, d=s?cur():null;
+    let after=null;
+    if(g&&g.types){
+      after=el("div",{class:"group"},el("span",{text:"你的成果比較像哪一種？"}),
+        el("div",{class:"types"},g.types.map(t=>el("button",{type:"button",class:"type"+(d.type===t.id?" on":""),onclick:()=>{d.type=t.id;save();render();}},
+          el("b",{text:t.name}),el("span",{text:t.desc}),el("small",{text:t.ex})))));
+    } else if(g&&g.ask){
+      after=d.course&&d.course.field
+        ? el("div",{class:"note"},el("b",{text:"課程："+d.course.name}),el("p",{class:"hint",style:"margin:2px 0 6px",text:(d.course.about||"")+"（"+d.course.field+"）"}),el("button",{type:"button",class:"btn",text:"修改課程資訊",onclick:()=>courseDialog(render)}))
+        : el("div",{},el("button",{type:"button",class:"btn solid",text:"填寫課程資訊",onclick:()=>courseDialog(()=>go(1))}));
+    }
     return [
       el("h2",{text:st.cat==="course"?"這份成果是哪一科？":"這是哪一類多元表現？"}),
-      el("p",{class:"hint",text:st.cat==="course"?"選好科目後，工具 2 會給你這一科適合的思考問題。":"選好類別後，工具 2 會給你這一類適合的思考問題。"}),
+      el("a",{class:"exlink",href:EXAMPLES[st.cat],target:"_blank",rel:"noopener"},"看學長姐的"+CAT_NAME[st.cat]+"範例 ↗"),
+      el("p",{class:"hint",text:"選好之後，工具 2 會給你這一類適合的思考問題。"}),
       ...groups,
-      s?el("p",{class:"note"},"已選：",el("b",{text:CAT_NAME[st.cat]+"／"+s}),"。接下來到工具 2 回答幾個問題。"):null
+      after,
+      ready()?el("p",{class:"note"},"已選：",el("b",{text:ctxLine()}),"。接下來到工具 2 回答問題。"):null
     ];
   }
 
   /* 工具 2 */
   function tool1(){
-    const fr=frameFor(st.cat,st.sub[st.cat]), d=cur();
-    const qs = fr.map((f,i)=>{
-      const ta=el("textarea",{id:"ans-"+i,placeholder:f.ph}); ta.value=d.ans[i]||"";
-      ta.addEventListener("input",()=>{d.ans[i]=ta.value;save();});
-      return el("div",{class:"q"}, el("label",{for:"ans-"+i},el("span",{class:"lb",text:f.label}),f.q), ta);
+    const d=cur(), fr=frame();
+    const lvRow=el("div",{class:"levels"},LEVELS.map(L=>el("button",{type:"button",class:"level"+(d.level===L.lv?" on":""),onclick:()=>{d.level=L.lv;save();render();}},
+      el("b",{text:L.name}),el("span",{text:L.desc}))));
+    let lastDim="";
+    const qs=[];
+    fr.forEach((q,i)=>{
+      if(q.dim!==lastDim){ qs.push(el("div",{class:"dimhead",text:DIM_NAME[q.dim]})); lastDim=q.dim; }
+      const id="ans-"+i;
+      const ta=el("textarea",{id,placeholder:q.ph}); ta.value=ansOf(d,q);
+      ta.addEventListener("input",()=>{d.ans[qkey(q)]=ta.value;save();});
+      qs.push(el("div",{class:"q"}, el("label",{for:id},el("span",{class:"lb",text:q.label}),q.q), ta));
     });
     const status=el("span",{class:"status"}), res=el("div",{class:"result"});
     const runBtn=el("button",{type:"button",class:"btn solid",text:SAMPLE?"請 AI 幫我整理成架構":"幫我整理成架構",onclick:run});
     let ctl=null;
     const stop=el("button",{type:"button",class:"btn",text:"停止",hidden:"hidden",onclick:()=>ctl&&ctl.abort()});
     async function run(){
-      const filled=d.ans.filter(x=>(x||"").trim()).length;
-      if(!filled){ status.textContent="先在上面至少寫一題，隨便寫幾個字也可以。"; return; }
-      if(!SAMPLE){ d.ai=localResult(); save(); drawResult(res,d); status.textContent="已用基本版整理。"; return; }
+      if(!fr.some(q=>ansOf(d,q).trim())){ status.textContent="先在上面至少寫一題，隨便寫幾個字也可以。"; return; }
+      if(!SAMPLE){ d.ai=localResult(); save(); drawResult(res,d); status.textContent="已依五個向度整理好了。"; return; }
       runBtn.disabled=true; stop.hidden=false; status.textContent="AI 思考中，大約需要 10–40 秒……";
       ctl=new AbortController();
       const prompt=[
         "你是台灣高中「學習歷程檔案」的寫作教練。這位學生在資源教室，表達與組織能力可能較弱，請溫和、具體。",
-        `類型：${CAT_NAME[st.cat]}　細項：${st.sub[st.cat]}`,
-        "以下是學生對引導問題的原始回答（可能很零碎）：",
-        ...fr.map((f,i)=>`【${f.label}】${f.q}\n學生：${(d.ans[i]||"").trim()||"（沒寫）"}`),
-        "",
+        `類型：${ctxLine()}`, courseInfo(),
+        "以下是學生對引導問題的原始回答（可能很零碎）：", answersText(fr,d), "",
         "請整理成報告架構。規則：",
         "1. 只用學生說過的事實，不要編造經歷、數字、結果或感受。資訊不足處寫「（待補：要補什麼）」。",
-        "2. 用高中生自然、簡單的語氣，第一人稱，不要華麗詞藻或成語堆疊。",
-        "3. 用繁體中文。",
-        '只回傳 JSON：{"titles":[3個標題，每個25字內，含主題與收穫],"mindmap":{"center":"中心主題10字內","branches":[{"label":"4字內","items":["每點18字內"]}]},"slides":[{"heading":"頁標題","bullets":["每點30字內"]}],"summary":"80到120字的上傳簡述","missing":["請學生再補充的具體問題"]}',
-        "mindmap 4–5 個分支、每支 2–3 點；slides 4–6 頁（不含封面），依序涵蓋動機、過程、困難與解決、成果、反思；missing 最多 3 項。"
-      ].join("\n");
+        "2. 把內容重新歸類到五個向度：學習動機、學習內容、學習過程及挑戰、學習成果、學習反思。",
+        "3. 用高中生自然、簡單的語氣，第一人稱，不要華麗詞藻。用繁體中文。",
+        '只回傳 JSON：{"titles":[3個標題，每個25字內，含主題與收穫],"mindmap":{"center":"中心主題10字內","branches":[{"label":"學習動機","items":["每點18字內"]}]},"slides":[{"heading":"學習動機：短標題","bullets":["每點30字內"]}],"summary":"80到120字的上傳簡述","missing":["請學生再補充的具體問題"]}',
+        "mindmap.branches 固定 5 個，label 依序是 學習動機、學習內容、學習過程及挑戰、學習成果、學習反思，每支 2–4 點；slides 固定 5 頁，依同樣順序；missing 最多 3 項。"
+      ].filter(Boolean).join("\n");
       try{
         const r = await SAMPLE.json(prompt,{signal:ctl.signal,cache:false});
         if(!r || !r.slides || !r.mindmap) throw {code:"invalid_json"};
@@ -503,6 +661,13 @@ function buildDeck(P, d, tplId, blank){
       }finally{ runBtn.disabled=false; stop.hidden=true; }
     }
     if(d.ai) drawResult(res,d);
+
+    const pTa=el("textarea",{id:"ai-prompt",readonly:"readonly",class:"out",style:"min-height:160px",hidden:"hidden"});
+    const pMsg=el("span",{class:"status"});
+    const pBtn=el("button",{type:"button",class:"btn",text:"產生並複製 AI 指令",onclick:()=>{
+      const p=buildPrompt(fr,d); if(!p){pMsg.textContent="先寫一些內容，才能產生指令。";return;}
+      pTa.value=p; pTa.hidden=false; copyText(pTa,pMsg);
+    }});
     const back=el("textarea",{id:"ai-back",placeholder:"把 AI 的回答整段貼在這裡"});
     const backMsg=el("span",{class:"status"});
     const applyBtn=el("button",{type:"button",class:"btn solid",text:"套用 AI 的回答",onclick:()=>{
@@ -513,32 +678,35 @@ function buildDeck(P, d, tplId, blank){
       backMsg.textContent="已套用！可以在下面修改，再到工具 3 下載簡報。";
       res.scrollIntoView({behavior:"smooth",block:"start"});
     }});
-    const freeAI = el("div",{class:"result"},
-      aiBox("ai-prompt",()=>buildPrompt(fr,d),"沒有 Claude 帳號也可以：按下面的按鈕複製指令，貼到免費 AI，再把 AI 的回答整段貼回來。"),
-      el("label",{for:"ai-back",class:"hint",text:"把 AI 的回答貼回來："}), back,
-      el("div",{class:"row"},applyBtn,backMsg));
+    const freeAI=el("div",{class:"note"},
+      el("b",{text:"用免費 AI 潤飾"}),
+      el("p",{class:"hint",style:"margin:4px 0 8px",text:"複製指令貼到 AI，再把回答整段貼回來。"}),
+      el("div",{class:"row"},pBtn,pMsg), pTa, aiLinks(),
+      el("label",{for:"ai-back",class:"hint",style:"display:block;margin-top:10px",text:"把 AI 的回答貼回來："}), back,
+      el("div",{class:"row",style:"margin-top:8px"},applyBtn,backMsg));
+
+    const g=st.cat==="course"?groupOf(st.sub[st.cat]):null;
     return [
       el("h2",{text:"把想法寫下來"}),
-      el("p",{class:"ctx",text:CAT_NAME[st.cat]+"／"+st.sub[st.cat]}),
-      el("p",{class:"hint",text:"不用寫得很漂亮，想到什麼就打什麼，一兩句也可以。打字不順的話，可以用手機的語音輸入。寫完按下面的按鈕，會幫你整理成標題、心智圖和每一頁的重點。"}),
+      el("p",{class:"ctx",text:ctxLine()}),
+      g&&g.ask&&d.course?el("p",{class:"hint"},"課程重點："+(d.course.about||"（未填）")+" ",el("button",{type:"button",class:"linkbtn",text:"修改",onclick:()=>courseDialog(render)})):null,
+      el("div",{class:"group"},el("span",{text:"選一個你想挑戰的程度"}),lvRow),
+      el("p",{class:"hint"},"不用寫得很漂亮，想到什麼就打什麼。打字不順的話，可以用手機的語音輸入。卡住時可以",el("a",{href:EXAMPLES[st.cat],target:"_blank",rel:"noopener",text:"看學長姐的範例"}),"。"),
       ...qs,
       el("div",{class:"row"},runBtn,stop,status),
-      !SAMPLE?el("p",{class:"hint",text:"這個按鈕會照你的回答排好架構和心智圖，但不會潤飾文字。想讓文字更通順，可以用下面的免費 AI。"}):null,
+      !SAMPLE?el("p",{class:"hint",text:"這個按鈕會把你的回答依五個向度重新歸類成架構和心智圖，但不會潤飾文字。想讓文字更通順，可以用下面的免費 AI。"}):null,
       freeAI,
       res
     ];
   }
   function drawResult(res,d){
     const r=d.ai; res.innerHTML="";
-    // titles
     const titleInp=el("input",{type:"text",id:"title-inp",placeholder:"我的標題"}); titleInp.value=d.title||"";
-    titleInp.addEventListener("input",()=>{d.title=titleInp.value;if(r.mindmap&&r.local)r.mindmap.center=d.title||st.sub[st.cat];save();});
+    titleInp.addEventListener("input",()=>{d.title=titleInp.value;save();});
     res.append(el("h3",{text:"標題"}));
     if(r.titles&&r.titles.length) res.append(el("div",{class:"titles"}, r.titles.map(t=>el("button",{type:"button",class:"chip"+(d.title===t?" on":""),text:t,onclick:()=>{d.title=t;save();drawResult(res,d);}}))));
     res.append(el("label",{for:"title-inp",class:"hint",text:r.titles&&r.titles.length?"點一個，或在下面改成自己的：":"給這份成果取個標題：主題 + 你做了什麼或學到什麼。"}),titleInp);
-    // mindmap
-    res.append(el("h3",{text:"心智圖"}), el("div",{class:"mm"}, drawMindmap(r.mindmap, d.title)));
-    // slides
+    res.append(el("h3",{text:"心智圖：五個向度"}), el("div",{class:"mm"}, drawMindmap(r.mindmap, d.title)));
     res.append(el("h3",{text:"每一頁的重點（可以直接改）"}));
     const box=el("div",{class:"slides"});
     (r.slides||[]).forEach((s,i)=>{
@@ -549,7 +717,6 @@ function buildDeck(P, d, tplId, blank){
       box.append(el("div",{class:"sl"},el("span",{class:"num",text:i+2}),el("div",{},h,b)));
     });
     res.append(el("p",{class:"hint",text:"第 1 頁是封面。每一行是一個重點。"}),box);
-    // summary
     const sum=el("textarea",{id:"sum"}); sum.value=r.summary||"";
     const cnt=el("span",{class:"status"});
     const upd=()=>{const n=sum.value.trim().length;cnt.textContent=n+" 字（上傳平台時用，建議 80–150 字）";};
@@ -558,32 +725,27 @@ function buildDeck(P, d, tplId, blank){
     res.append(el("h3",{text:"100 字簡述"}), sum, el("div",{class:"row"},cnt,el("button",{type:"button",class:"btn",text:"複製簡述",onclick:()=>copyText(sum,copyMsg)}),copyMsg));
     if(r.missing&&r.missing.length) res.append(el("div",{class:"note warn"},el("b",{text:"還可以補充："}),el("ul",{class:"missing"},r.missing.map(m=>el("li",{text:m})))));
   }
-  function copyText(ta,msg){
-    const fb=()=>{ta.focus();ta.select();msg.textContent="已選取，請按 Ctrl+C 複製。";};
-    try{navigator.clipboard.writeText(ta.value).then(()=>{msg.textContent="已複製！";},fb);}catch(e){fb();}
-  }
   function drawMindmap(mm,title){
     const br=(mm&&mm.branches||[]).slice(0,6);
     const rows=br.map(b=>Math.max(1,(b.items||[]).length));
     const RH=30, PAD=18, total=Math.max(rows.reduce((a,b)=>a+b,0),3);
-    const H=total*RH+PAD*2+(br.length-1)*10, W=760;
+    const H=total*RH+PAD*2+(br.length-1)*10, W=780;
     const s=svg("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"心智圖"});
     const cy=H/2, center=(title||mm&&mm.center||"我的主題");
-    // center
-    s.append(svg("rect",{x:10,y:cy-34,width:170,height:68,rx:14,style:"fill:var(--cat)"}));
-    const cl = center.length>9 ? [center.slice(0,9),clip(center.slice(9),9)] : [center];
-    cl.forEach((t,i)=>s.append(svg("text",{x:95,y:cy+(i-(cl.length-1)/2)*20+6,"text-anchor":"middle","font-size":16,"font-weight":700,style:"fill:var(--paper);font-family:var(--f-body)"},t)));
+    s.append(svg("rect",{x:10,y:cy-34,width:160,height:68,rx:14,style:"fill:var(--cat)"}));
+    const cl = center.length>8 ? [center.slice(0,8),clip(center.slice(8),8)] : [center];
+    cl.forEach((t,i)=>s.append(svg("text",{x:90,y:cy+(i-(cl.length-1)/2)*20+6,"text-anchor":"middle","font-size":16,"font-weight":700,style:"fill:var(--paper);font-family:var(--f-body)"},t)));
     let y=PAD;
     br.forEach((b,bi)=>{
       const n=rows[bi], h=n*RH, my=y+h/2, col=`var(--b${bi%5+1})`;
-      s.append(svg("path",{d:`M180 ${cy} C 205 ${cy}, 205 ${my}, 230 ${my}`,fill:"none","stroke-width":2,style:`stroke:${col}`}));
-      s.append(svg("rect",{x:230,y:my-15,width:96,height:30,rx:8,fill:"none","stroke-width":2,style:`stroke:${col}`}));
-      s.append(svg("text",{x:278,y:my+5,"text-anchor":"middle","font-size":14,"font-weight":700,style:`fill:${col};font-family:var(--f-body)`},clip(b.label||"",6)));
+      s.append(svg("path",{d:`M170 ${cy} C 195 ${cy}, 195 ${my}, 220 ${my}`,fill:"none","stroke-width":2,style:`stroke:${col}`}));
+      s.append(svg("rect",{x:220,y:my-15,width:130,height:30,rx:8,fill:"none","stroke-width":2,style:`stroke:${col}`}));
+      s.append(svg("text",{x:285,y:my+5,"text-anchor":"middle","font-size":14,"font-weight":700,style:`fill:${col};font-family:var(--f-body)`},clip(b.label||"",8)));
       (b.items||["（還沒寫）"]).forEach((it,ii)=>{
         const iy=y+ii*RH+RH/2;
-        s.append(svg("path",{d:`M326 ${my} C 342 ${my}, 342 ${iy}, 358 ${iy}`,fill:"none","stroke-width":1.5,style:`stroke:${col}`}));
-        s.append(svg("circle",{cx:362,cy:iy,r:3,style:`fill:${col}`}));
-        s.append(svg("text",{x:372,y:iy+5,"font-size":14,style:"fill:var(--ink);font-family:var(--f-body)"},clip(it,26)));
+        s.append(svg("path",{d:`M350 ${my} C 366 ${my}, 366 ${iy}, 382 ${iy}`,fill:"none","stroke-width":1.5,style:`stroke:${col}`}));
+        s.append(svg("circle",{cx:386,cy:iy,r:3,style:`fill:${col}`}));
+        s.append(svg("text",{x:396,y:iy+5,"font-size":14,style:"fill:var(--ink);font-family:var(--f-body)"},clip(it,26)));
       });
       y+=h+10;
     });
@@ -599,13 +761,12 @@ function buildDeck(P, d, tplId, blank){
   function tool2(){
     const d=cur(); const msg=el("p",{class:"status"});
     async function dl(t,blank){
-      if(!window.PptxGenJS){ msg.textContent="簡報產生器沒有載入，請重新整理頁面。"; return; }
+      if(!window.PptxGenJS){ msg.textContent="簡報產生器沒有載入，請確認有連上網路後重新整理頁面。"; return; }
       msg.textContent="正在產生簡報……";
       try{
         const r=d.ai||localResult();
-        const fr=frameFor(st.cat,st.sub[st.cat]);
         const data = blank
-          ? {title:"",catName:CAT_NAME[st.cat],sub:st.sub[st.cat],slides:fr.map(f=>({heading:f.label,bullets:["（這頁寫："+f.q+"）"]})),mindmap:null}
+          ? {title:"",catName:CAT_NAME[st.cat],sub:st.sub[st.cat],slides:DIMS.map(([k,n])=>({heading:n,bullets:["（這頁寫："+frame().filter(q=>q.dim===k).map(q=>q.q).join("、")+"）"]})).filter(s=>!/（這頁寫：）/.test(s.bullets[0])),mindmap:null}
           : {title:d.title,catName:CAT_NAME[st.cat],sub:st.sub[st.cat],slides:(r.slides||[]).map(s=>({heading:s.heading,bullets:(s.bullets||[]).filter(x=>x.trim())})),mindmap:Object.assign({},r.mindmap,{center:d.title||r.mindmap&&r.mindmap.center})};
         const P=buildDeck(new PptxGenJS(),data,t.id,blank);
         const name=`學習歷程_${st.sub[st.cat]}_${t.name}${blank?"_空白":""}.pptx`.replace(/[\\/:*?"<>|（）]/g,"");
@@ -619,8 +780,8 @@ function buildDeck(P, d, tplId, blank){
     }
     return [
       el("h2",{text:"挑一個簡報模板"}),
-      el("p",{class:"ctx",text:CAT_NAME[st.cat]+"／"+st.sub[st.cat]}),
-      el("p",{class:"hint",text:"三種模板都可以下載成 PPT。「填入我的內容」會把工具 2 整理好的標題和每頁重點直接放進去；還沒整理的話，可以先下載空白版，裡面每一頁都寫好了要放什麼。"}),
+      el("p",{class:"ctx",text:ctxLine()}),
+      el("p",{class:"hint",text:"三種模板都可以下載成 PPT。「填入我的內容」會把工具 2 整理好的標題和五個向度的重點放進去；空白版的每一頁都寫好了要放什麼。"}),
       d.ai?null:el("p",{class:"note warn",text:"你還沒在工具 2 整理內容，「填入我的內容」會只放你原本寫的句子。"}),
       el("div",{class:"tpls"}, TPLS.map(t=>el("div",{class:"tpl"},
         el("div",{class:"mini "+t.mini}, t.id==="C"?[el("i",{class:"t"}),el("i",{style:"left:6%;background:#e3f1ee"}),el("i",{style:"left:36.5%;background:#fbe9df"}),el("i",{style:"left:67%;background:#ecebfa"})]:[el("i",{class:"t"}),el("i",{style:"top:34%;width:"+(t.id==="A"?"70%":"34%")}),el("i",{style:"top:48%;width:"+(t.id==="A"?"60%":"30%")}),el("i",{style:"top:62%;width:"+(t.id==="A"?"66%":"32%")})]),
@@ -653,6 +814,7 @@ function buildDeck(P, d, tplId, blank){
     const useMine=el("input",{type:"checkbox",id:"use-mine"});
     const d=cur(); if(d.ai) useMine.checked=true;
     const runBtn=el("button",{type:"button",class:"btn solid",text:SAMPLE?"請 AI 檢核並給建議":"幫我檢核",onclick:run});
+    const CHECKS="學習動機、學習內容、學習過程及挑戰、學習成果、學習反思、標題清楚、版面易讀";
 
     async function pptxText(f){
       if(!window.JSZip) return "";
@@ -676,22 +838,20 @@ function buildDeck(P, d, tplId, blank){
     const rvMsg=el("span",{class:"status"});
     const rvBtn=el("button",{type:"button",class:"btn",text:"產生並複製檢核指令",onclick:async()=>{
       let g; try{ g=await gather(); }catch(e){ rvMsg.textContent="這個 pptx 讀不出來，請改成貼上文字。"; return; }
-      if(!g.text){ rvMsg.textContent=g.imgs.length?"免費 AI 指令只能帶文字。請放 .pptx 或貼上文字；截圖可以另外直接上傳到 AI。":"請先放 .pptx、貼上文字，或勾選使用工具 2 的內容。"; return; }
+      if(!g.text){ rvMsg.textContent=g.imgs.length?"指令只能帶文字。請放 .pptx 或貼上文字；截圖可以另外直接上傳到 AI。":"請先放 .pptx、貼上文字，或勾選使用工具 2 的內容。"; return; }
       rvTa.value=[
         "你是台灣高中學習歷程檔案的審閱老師。請用溫和、具體、短句的方式給我回饋，用繁體中文。",
-        `類型：${CAT_NAME[st.cat]}　細項：${st.sub[st.cat]}`,
+        `類型：${ctxLine()}`, courseInfo(),
         "以下是我的初稿文字：", g.text, "",
-        "請依這 7 項檢核，每項寫「OK」或「要改」，加一句原因或怎麼改：動機、過程具體、困難與解決、反思收穫、與"+(st.cat==="course"?"科目內容":"活動性質")+"的連結、標題清楚、版面易讀（只有文字時給一般建議）。",
+        "請依這 7 項檢核，每項寫「OK」或「要改」，加一句原因或怎麼改："+CHECKS+"（只有文字時，版面給一般建議）。",
         "然後列出：做得好的地方（最多3點）、寫作建議（最多4點）、最優先改的一件事。",
         "不要幫我重寫全文，只給方向和一兩句示範。"
-      ].join("\n");
+      ].filter(Boolean).join("\n");
       rvTa.hidden=false; copyText(rvTa,rvMsg);
     }});
     const rvBox=el("div",{class:"note"},el("b",{text:"用免費 AI 檢核"}),
-      el("p",{class:"hint",style:"margin:4px 0 8px",text:"先在上面放好 .pptx 或貼上文字，再按按鈕複製指令，貼到免費 AI。截圖可以另外直接上傳到 AI 一起看。"}),
-      el("div",{class:"row"},rvBtn,rvMsg), rvTa,
-      el("div",{class:"row",style:"margin-top:8px;font-size:14px"},"貼到：",...AI_SITES.map(([n,u])=>el("a",{href:u,target:"_blank",rel:"noopener",text:n}))),
-      el("p",{class:"hint",style:"margin-top:6px",text:"使用前請確認符合該 AI 平台的年齡規定。初稿裡如果有姓名、學號，請先刪掉再貼。"}));
+      el("p",{class:"hint",style:"margin:4px 0 8px",text:"放好檔案或貼上文字後，複製指令貼到 AI。截圖可以另外直接上傳到 AI 一起看。"}),
+      el("div",{class:"row"},rvBtn,rvMsg), rvTa, aiLinks());
     async function run(){
       msg.textContent="讀取中……"; runBtn.disabled=true;
       let text, imgs;
@@ -703,31 +863,33 @@ function buildDeck(P, d, tplId, blank){
         const useImgs = canImg ? imgs.slice(0,lim.images.maxCount) : [];
         const prompt=[
           "你是台灣高中學習歷程檔案的審閱老師，學生在資源教室，請用溫和、具體、短句的方式回饋，繁體中文。",
-          `類型：${CAT_NAME[st.cat]}　細項：${st.sub[st.cat]}`,
+          `類型：${ctxLine()}`, courseInfo(),
           useImgs.length?`附上 ${useImgs.length} 張學生簡報的截圖，請一併看文字內容與版面設計。`:"沒有圖片，只評文字；design 欄位給一般版面建議即可。",
           "學生初稿文字：", text||"（見圖片）", "",
-          "依以下 7 項檢核，每項 status 只能是 ok 或 fix，note 30 字內說明原因或怎麼改：動機、過程具體、困難與解決、反思收穫、與"+(st.cat==="course"?"科目內容":"活動性質")+"的連結、標題清楚、版面易讀。",
+          "依以下 7 項檢核，每項 status 只能是 ok 或 fix，note 30 字內說明原因或怎麼改："+CHECKS+"。",
           "不要替學生重寫全文，只給方向和一兩句示範。",
           '只回傳 JSON：{"checks":[{"item":"","status":"ok","note":""}],"strengths":["做得好的地方，最多3點"],"writing":["寫作建議，最多4點"],"design":["設計建議，最多4點"],"next":"最優先改的一件事，30字內"}'
-        ].join("\n");
+        ].filter(Boolean).join("\n");
         msg.textContent="AI 檢核中，大約需要 20–60 秒……";
         try{
           const r=await SAMPLE.json(prompt,{images:useImgs.length?useImgs:undefined,cache:false});
           drawReview(r,imgs.length&&!useImgs.length?"這個環境不能傳圖片給 AI，只檢核了文字。":"");
           msg.textContent="";
         }catch(e){ drawReview(localReview(text),errText(e&&e.code)); msg.textContent=""; }
-      } else { drawReview(localReview(text), imgs.length?"基本版只能檢查文字，圖片的版面請自己對照右邊的設計原則。":""); msg.textContent=""; }
+      } else { drawReview(localReview(text), imgs.length?"基本版只能檢查文字，圖片的版面請對照「自己設計的共同原則」，或用下面的免費 AI 檢核。":""); msg.textContent=""; }
       runBtn.disabled=false;
     }
     function localReview(t){
-      const R={motive:/因為|好奇|想要|想知道|原因|動機|一開始/,detail:/\d|[一二三四五六七八九十兩]+(週|次|小時|天|個|頁|張|人)|首先|接著|最後/,trouble:/困難|問題|卡住|失敗|不會|遇到|挑戰/,solve:/解決|嘗試|後來|改成|請教|調整|重新/,reflect:/學到|發現|體會|了解到|明白|原來|下次|改進/,vague:/很好玩|很有趣|很棒|很開心|收穫很多|學到很多|很有意義|受益良多/g};
+      const R={motive:/因為|好奇|想要|想知道|原因|動機|一開始|為什麼/,content:/學|課|內容|主題|概念|知識|文本|技能/,detail:/\d|[一二三四五六七八九十兩]+(週|次|小時|天|個|頁|張|人)|首先|接著|最後/,trouble:/困難|問題|卡住|失敗|不會|遇到|挑戰/,solve:/解決|嘗試|後來|改成|請教|調整|重新/,result:/做出|完成|成果|作品|結果|進步|得到|獲得/,reflect:/學到|發現|體會|了解到|明白|原來|下次|改進|未來/,vague:/很好玩|很有趣|很棒|很開心|收穫很多|學到很多|很有意義|受益良多/g};
       const v=t.match(R.vague)||[];
+      const c=(item,ok,okT,fixT)=>({item,status:ok?"ok":"fix",note:ok?okT:fixT});
       return {checks:[
-        {item:"動機",status:R.motive.test(t)?"ok":"fix",note:R.motive.test(t)?"有寫為什麼做。":"加一句「我會做這個是因為……」。"},
-        {item:"過程具體",status:R.detail.test(t)?"ok":"fix",note:R.detail.test(t)?"有步驟或數字。":"寫出花了幾週、做了幾次、用了什麼方法。"},
-        {item:"困難與解決",status:R.trouble.test(t)&&R.solve.test(t)?"ok":"fix",note:R.trouble.test(t)?(R.solve.test(t)?"困難和解決都有。":"有困難，但沒寫怎麼解決。"):"寫一個遇到的困難，小的也可以。"},
-        {item:"反思收穫",status:R.reflect.test(t)?"ok":"fix",note:R.reflect.test(t)?"有寫學到什麼。":"用「我學到……」「下次我會……」寫一句。"},
-        {item:"空泛用詞",status:v.length?"fix":"ok",note:v.length?`把「${[...new Set(v)].join("」「")}」改成具體說明。`:"沒有空泛的形容詞。"}
+        c("學習動機",R.motive.test(t),"有寫為什麼做。","加一句「我會做這個是因為……」。"),
+        c("學習內容",R.content.test(t),"有說明學了什麼。","說清楚這門課或這次活動在學什麼。"),
+        c("學習過程及挑戰",R.trouble.test(t)&&R.solve.test(t)&&R.detail.test(t),"過程具體，也有困難與解決。",!R.detail.test(t)?"寫出花了多久、做了幾次、用了什麼方法。":(R.trouble.test(t)?"有困難，但沒寫怎麼解決。":"寫一個遇到的困難，小的也可以。")),
+        c("學習成果",R.result.test(t),"有寫做出什麼。","寫出最後完成了什麼，可以放照片。"),
+        c("學習反思",R.reflect.test(t),"有寫學到什麼。","用「我學到……」「下次我會……」寫一句。"),
+        c("空泛用詞",!v.length,"沒有空泛的形容詞。",`把「${[...new Set(v)].join("」「")}」改成具體說明。`)
       ],strengths:[],writing:[],design:["一頁一個重點，最多 5 行字","字不要小於 18pt","照片配一句說明"],next:"",local:true};
     }
     function drawReview(r,warn){
@@ -741,8 +903,8 @@ function buildDeck(P, d, tplId, blank){
     }
     return [
       el("h2",{text:"上傳初稿，檢核一下"}),
-      el("p",{class:"ctx",text:CAT_NAME[st.cat]+"／"+st.sub[st.cat]}),
-      el("p",{class:"hint",text:SAMPLE?"AI 會依 7 個項目檢核，並分別給寫作和設計建議。檔案只用來檢核，不會被存起來。":"目前是基本版：只檢查文字裡有沒有動機、具體過程、困難與解決、反思。登入 Claude 開啟這個網頁可使用 AI 檢核（含版面設計）。"}),
+      el("p",{class:"ctx",text:ctxLine()}),
+      el("p",{class:"hint",text:SAMPLE?"AI 會依五個向度、標題和版面共 7 項檢核，並分別給寫作和設計建議。檔案只用來檢核，不會被存起來。":"基本版會檢查文字是否涵蓋五個向度，以及有沒有空泛的用詞。"}),
       drop,
       el("label",{for:"draft-text",class:"hint",text:"貼上文字（選填）"}), ta,
       d.ai?el("label",{class:"row",for:"use-mine",style:"gap:8px;font-size:15px"},useMine,"一起檢核我在工具 2 整理的內容"):null,
@@ -754,6 +916,7 @@ function buildDeck(P, d, tplId, blank){
 
   render();
 })();
+
 </script>
 
 </body>
